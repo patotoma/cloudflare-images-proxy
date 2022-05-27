@@ -9,7 +9,34 @@
  */
 
 export default {
-  async fetch(request: Request): Promise<Response> {
-    return new Response("Hello World!");
+  async fetch(request: Request, env: {}, context: ExecutionContext): Promise<Response> {
+    if (request.method === "GET") {
+      let response = await serveAsset(request, env, context);
+      if (response.status > 399) {
+        response = new Response(response.statusText, { status: response.status });
+      }
+      return response;
+    } else {
+      return new Response("Method not allowed", { status: 405 });
+    }
   },
 };
+
+async function serveAsset(request: Request, env: {}, context: ExecutionContext) {
+  const url = new URL(request.url);
+  const cache = caches.default;
+  let response = await cache.match(request);
+
+  if (!response) {
+    response = await fetch(`https://imagedelivery.net${url.pathname}`, {
+      headers: request.headers,
+    });
+    const headers = new Headers(response.headers);
+    headers.set("cache-control", "public, max-age=31536000");
+    headers.set("vary", "Accept");
+    response = new Response(response.body, { ...response, headers });
+    context.waitUntil(cache.put(request, response.clone()));
+  }
+
+  return response;
+}
