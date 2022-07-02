@@ -9,4 +9,6 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+      time: "00:00"
     versioning-strategy: increase
+    open-pull-requests-limit: 10
